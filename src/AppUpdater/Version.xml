@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<VersionFile xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <NewVersion>v1.2.3</NewVersion>  
+  <StartupFile>setup.msi</StartupFile>
+  <Files>
+    <ItemInfo Name="setup.msi" />
+    <ItemInfo Name="Changes.txt" />
+    <ItemInfo Name="ReleaseNotes.txt" />
+  </Files>
+</VersionFile>
+
+<!--
+Automatically create Version Folder according to New Version name and 
+download the items in this folder. 
+Server file path : NewVersion/setup.msi (like this)
+-->
