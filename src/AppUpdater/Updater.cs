@@ -72,6 +72,8 @@ namespace AppUpdater
             }
         }
 
+        public bool IsFtp { get; set; }
+
         // use any temp name for download folder 
         public String TempFolder = "AppUpdates";
         
@@ -80,16 +82,17 @@ namespace AppUpdater
         #region Constructor
         private Updater() 
         {
-            TempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), TempFolder);
-
             ServicePointManager.ServerCertificateValidationCallback +=
                 (sender, certificate, chain, sslPolicyErrors) => true;
+
+            TempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), TempFolder);
         }
 
         public Updater(Uri Url)
             : this()
         {
-            this.Server = Url;            
+            this.Server = Url;
+            IsFtp = this.Server.Scheme.StartsWith("FTP");
         }
 
         public Updater(String Url)

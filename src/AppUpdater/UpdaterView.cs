@@ -141,15 +141,17 @@ namespace AppUpdater
                 if (!initStatus || updater.Files == null)
                     throw new Exception("Files list is null");
 
-                // TempPath + Added Version Folder 
-                updater.TempPath = Path.Combine(updater.TempPath, updater.NewVersion);
+                // TempPath + App Name + Added Version Folder 
+                updater.TempPath = Path.Combine(Path.Combine(updater.TempPath, this.ApplicationName),
+                                    updater.NewVersion);
 
                 int successfullDownload = 0;
                 int count = 0;
 
                 while (count < updater.Files.Count && !downloadWorker.CancellationPending)
                 {
-                    bool success = DownloadSingleFile(updater.Files[count], updater.TempPath);
+                    bool success = updater.IsFtp ? DownloadSingleFileFTP(updater.Files[count], updater.TempPath)
+                        : DownloadSingleFileHttp(updater.Files[count], updater.TempPath);
 
                     if (downloadWorker.CancellationPending)
                     {
@@ -172,30 +174,31 @@ namespace AppUpdater
                 Log.Debug(ex.StackTrace);
             }
         }
-
-        private bool DownloadSingleFile(ItemInfo file, String dstDir)
+        
+        private bool DownloadSingleFileHttp(ItemInfo file, String dstDir)
         {
             bool isSuccess = true;
             Byte[] readBytes = new Byte[PacketSize];
 
             // create destination directory if not exits
             String dir = Path.GetDirectoryName(Path.Combine(dstDir, file.FullPath));
-            if (!string.IsNullOrEmpty(dir))
+            if (!Directory.Exists(dir) || !string.IsNullOrEmpty(dir))
             {
                 Directory.CreateDirectory(dir);
-                Console.WriteLine(dir);
             }
 
-            WebRequest webReq;
-            WebResponse webResp = null;
+            HttpWebRequest webReq;
+            HttpWebResponse webResp = null;
 
             try
             {
-                webReq = WebRequest.Create(file.DownloadUrl);
-                Log.Debug(file.DownloadUrl);
-
+                webReq = (HttpWebRequest)WebRequest.Create(file.DownloadUrl);
                 webReq.Credentials = updater.GetCredential();
-                webResp = webReq.GetResponse();
+                webReq.KeepAlive = false;
+                webReq.Method = updater.IsFtp ? WebRequestMethods.Ftp.DownloadFile : WebRequestMethods.Http.Get;
+                
+                webReq.Credentials = updater.GetCredential();
+                webResp = (HttpWebResponse)webReq.GetResponse();
 
                 downloadui.SetDownloadingFileName(file.FileName);
 
@@ -224,6 +227,7 @@ namespace AppUpdater
                         }
                     }
 
+                    writer.Flush();
                     writer.Close();
                 }
 
@@ -238,6 +242,76 @@ namespace AppUpdater
 
             return isSuccess;
         }
+
+        private bool DownloadSingleFileFTP(ItemInfo file, String dstDir)
+        {
+            bool isSuccess = true;
+            Byte[] readBytes = new Byte[PacketSize];
+
+            // create destination directory if not exits
+            String dir = Path.GetDirectoryName(Path.Combine(dstDir, file.FullPath));
+            if (!Directory.Exists(dir) || !string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            FtpWebRequest webReq;
+            FtpWebResponse webResp = null;
+
+            try
+            {
+                webReq = (FtpWebRequest)WebRequest.Create(file.DownloadUrl);
+                webReq.Credentials = updater.GetCredential();
+                webReq.KeepAlive = false;
+                webReq.UsePassive = true;
+                webReq.Method = updater.IsFtp ? WebRequestMethods.Ftp.DownloadFile : WebRequestMethods.Http.Get;
+                
+                webReq.Credentials = updater.GetCredential();
+                webResp = (FtpWebResponse)webReq.GetResponse();
+
+                downloadui.SetDownloadingFileName(file.FileName);
+
+                using (FileStream writer = new FileStream(Path.Combine(dir, file.FileName), FileMode.Create))
+                {
+                    int currentFileProgress = 0;
+
+                    while (currentFileProgress < file.FileSize && !downloadWorker.CancellationPending)
+                    {
+                        // while (this.IsPaused) { System.Threading.Thread.Sleep(50); }
+
+                        var responseStream = webResp.GetResponseStream();
+
+                        if (responseStream != null)
+                        {
+                            Int32 currentPacketSize = responseStream
+                                .Read(readBytes, 0, PacketSize);
+
+                            currentFileProgress += currentPacketSize;
+                            TotalProgress += currentPacketSize;
+                            double percent = (TotalProgress / (updater.TotalFileSize * 1.0)) * 100;
+
+                            downloadWorker.ReportProgress((int)percent);
+
+                            writer.Write(readBytes, 0, currentPacketSize);
+                        }
+                    }
+
+                    writer.Flush();
+                    writer.Close();
+                }
+
+                webResp.Close();
+            }
+            catch (Exception ex)
+            {
+                isSuccess = false;
+                Log.Error(ex.Message);
+                Log.Debug(ex.StackTrace);
+            }
+
+            return isSuccess;
+        }
+
 
         private void UpdaterViewLoad(object sender, EventArgs e)
         {
