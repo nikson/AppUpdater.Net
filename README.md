@@ -1,15 +1,17 @@
 
+Application Version Updater
+----------------------------
 
-== Application Version Updater == 
 
-Add ''UpdateHelper'' file and setup your default parameter ex: server, username, password etc. 
+Add `UpdateHelper` file and setup your default parameter ex: _server_, _username_, _password_ etc.  
 
 Check is Update Available: 
-<code>      
+```
 var Satus = UpdateHelper.CheckUpdate();
-</code>
+```
 
-Run the Updater as a seperate process:
-<code>
+
+Run the Updater as a seperate process: 
+```
 UpdateHelper.RunVersionUpdater()
-</code>
+```
