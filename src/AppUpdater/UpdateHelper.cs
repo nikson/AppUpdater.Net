@@ -62,8 +62,8 @@ public class UpdateHelper
     {
 
         DialogResult dr = MessageBox.Show(
-            "An update of this application is available. Do you want to update now\n\n" +
-            "New Verison available: " + u.NewVersion +
+            "An update of this application is available. Do you want to update now ?\n\n" +
+            "New Version available: " + u.NewVersion +
             "\n\nApplication will be restarted. Please save all information before continue.",
             "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
 
